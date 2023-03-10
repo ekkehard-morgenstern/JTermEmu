@@ -1,5 +1,6 @@
 package jtermemu;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -28,7 +29,7 @@ import java.awt.image.WritableRaster;
  *      
  * Character cell layout:
  * 
- * 		10 x 15 pixels (of which 8 x 8 pixels is the character glyph)
+ * 		11 x 15 pixels (of which 8 x 8 pixels is the character glyph)
  * 
  * 				ooooooooooo			o = overline
  * 				-----------
@@ -50,43 +51,29 @@ import java.awt.image.WritableRaster;
  *
  */
 public class GraphicsScreen {
-	private Dimension oldsize = null;
-	private Dimension currsize = null;
 	private BufferedImage image = null;
+	private TextScreen textScr = null;
+	private Dimension minSize = null;
+	private long frameCounter = 0;
 	
-	private final int ATTRF_INVERSE 			 = 1 << 0;
-	private final int ATTRF_UNDERLINE 			 = 1 << 1;
-	private final int ATTRF_THIN 				 = 1 << 2;
-	private final int ATTRF_BOLD 				 = 1 << 3;
-	private final int ATTRF_BRIGHT 				 = 1 << 4;
-	private final int ATTRF_BLINKSLOW 			 = 1 << 5;
-	private final int ATTRF_BLINKFAST 		 	 = 1 << 6;
-	private final int ATTRF_OVERLINE 			 = 1 << 7;
-	private final int ATTRF_DOUBLE_UNDERLINE 	 = 1 << 8;
-	private final int ATTRF_STRIKE_DIAGONAL_BLTR = 1 << 9;
-	private final int ATTRF_STRIKE_DIAGONAL_TLBR = 1 << 10;
-	private final int ATTRF_STRIKE_VERTICAL 	 = 1 << 11;
-	private final int ATTRF_STRIKE_HORIZONTAL 	 = 1 << 12;
-	private final int ATTRF_BLACKEN 			 = 1 << 13;
+	private static final int CELL_WIDTH = 11;
+	private static final int CELL_HEIGHT = 15;
 	
-	static final int[] dummyChar = {
-			0,0,0,0,0,0,0,0,
-			0,0,0,0,0,0,0,0,
-			0,0,0,1,1,0,0,0,
-			0,0,1,0,0,1,0,0,
-			0,1,0,0,0,0,1,0,
-			0,1,0,0,0,0,1,0,
-			0,1,1,1,1,1,1,0,
-			0,1,0,0,0,0,1,0,
-			0,1,0,0,0,0,1,0,
-			0,1,0,0,0,0,1,0,
-			0,0,0,0,0,0,0,0,
-			0,0,0,0,0,0,0,0			
-	};
+	public GraphicsScreen() {
+		init();
+	}
+	
+	private void init() {
+		textScr = new TextScreen();
+		initImage();
+	}
 	
 	private void initImage() {
-		Dimension size = currsize;
-		image = new BufferedImage( size.width, size.height, BufferedImage.TYPE_BYTE_INDEXED,
+		int cols = textScr.getColumns();
+		int rows = textScr.getRows();
+		int allocWidth  = cols * CELL_WIDTH;
+		int allocHeight = rows * CELL_HEIGHT;
+		image = new BufferedImage( allocWidth, allocHeight, BufferedImage.TYPE_BYTE_INDEXED,
 					new IndexColorModel( 4, 16, 
 							new byte[] { (byte) 0x88, (byte) 0x00, (byte) 0x88, (byte) 0x00, 
 										 (byte) 0x88, (byte) 0x00, (byte) 0x88, (byte) 0x00, 
@@ -102,38 +89,122 @@ public class GraphicsScreen {
 									     (byte) 0x00, (byte) 0xff, (byte) 0xff, (byte) 0xff } 
 					)
 				);		
+		minSize = new Dimension( allocWidth, allocHeight );
 	}
 	
 	private void updateImage() {
 		if ( image == null ) return;
 		
-		int width  = image.getWidth();
-		int height = image.getHeight();
-		if ( width <= 0 || height <= 0 ) return;
+		if ( ++frameCounter < 0 ) {
+			frameCounter = 0;
+		}
 		
-		int rows = height / 12;
-		int cols = width  / 8;
-
+		int cols = textScr.getColumns();
+		int rows = textScr.getRows();
+		
+		int[] charBuf = new int [ CELL_WIDTH * CELL_HEIGHT ];
+		int[] buffer  = textScr.getBuffer();
+		int[] data    = new int [ 8 ];
 		WritableRaster raster = image.getRaster();
 		for ( int y=0; y < rows; ++y ) {
 			for ( int x=0; x < cols; ++x ) {
-				raster.setPixels( x*8,  y*12,  8,  12, dummyChar );
+				int cell  = buffer[ y * cols + x ];
+				int chr   =   cell 							   & 255;
+				int bgcol = ( cell >> TextScreen.BGCOL_SHIFT ) & 15;
+				int fgcol = ( cell >> TextScreen.FGCOL_SHIFT ) & 15;
+				int attr  = ( cell >> TextScreen.ATTR_SHIFT  ) & 32767;
+				int shift = ( attr & Attributes.ATTRF_THIN ) != 0 ? 1 : 2;
+				if ( chr >= FontData.LOW_CHAR && chr <= FontData.HIGH_CHAR ) {
+					int offs = ( chr - FontData.LOW_CHAR ) * 8;
+					for ( int cy=0; cy < 8; ++cy ) {
+						int b = ( (int) FontData.bits[ offs + cy ] ) & 255;
+						data[cy] = b << shift;
+					}
+				}
+				else {
+					for ( int cy=0; cy < 8; ++cy ) {
+						int b = ( (int) FontData.undefbits[ cy ] ) & 255;
+						data[cy] = b << shift;
+					}					
+				}
+				if ( ( attr & Attributes.ATTRF_BOLD ) != 0 ) {
+					for ( int cy=0; cy < 8; ++cy ) {
+						data[cy] |= ( data[cy] >> 1 ) | ( data[cy] >> 2 );
+					}
+				}
+				else if ( ( attr & Attributes.ATTRF_THIN ) == 0 ) {
+					for ( int cy=0; cy < 8; ++cy ) {
+						data[cy] |= data[cy] >> 1;
+					}
+				}
+				for ( int cy=0; cy < 8; ++cy ) {
+					int b = data[cy];
+					for ( int cx=0; cx < 10; ++cx ) {
+						int b2  = 1 << ( 9 - cx );
+						int col = ( b & b2 ) != 0 ? fgcol : bgcol;
+						charBuf[ ( 2 + cy ) * CELL_WIDTH + cx ] = col;
+					}
+				}
+				raster.setPixels( x*CELL_WIDTH, y*CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT, charBuf );
 			}
 		}
 	}
 	
 	public void update( Dimension size ) {
-		currsize = size;
-		if ( oldsize == null || currsize.width != oldsize.width || currsize.height != oldsize.height ) {
-			oldsize = currsize;
-			initImage();
-		}
 		updateImage();
 	}
 	
-	public void paint( Graphics g ) {
+	public void paint( Graphics g, Dimension paintSize ) {
 		if ( image == null ) return;
-		g.drawImage( image, 0, 0, null );
+		
+		int scaleX = 1;
+		int scaleY = 1;
+		
+		int imageW = image.getWidth();
+		int imageH = image.getHeight(); 
+		
+		while ( imageW * scaleX < paintSize.width ) {
+			int newScaleX = scaleX + 1;
+			if ( imageW * newScaleX <= paintSize.width ) {
+				scaleX = newScaleX;
+				continue;
+			}
+			else {
+				break;
+			}
+		}
+		
+		while ( imageH * scaleY < paintSize.height ) {
+			int newScaleY = scaleY + 1;
+			if ( imageH * newScaleY <= paintSize.height ) {
+				scaleY = newScaleY;
+				continue;
+			}
+			else {
+				break;
+			}
+		}
+		
+		int paintW = imageW * scaleX;
+		int paintH = imageH * scaleY;
+		
+		int left   = ( paintSize.width  - paintW ) / 2;
+		int top    = ( paintSize.height - paintH ) / 2;
+		
+		if ( top > 0 ) {
+			g.clearRect( 0,  0, paintSize.width, top );
+			g.clearRect( 0,  top + paintH, paintSize.width, paintSize.height - paintH - top );
+		}
+		if ( left > 0 ) {
+			g.clearRect( 0, top, left, paintH );
+			g.clearRect( left + paintW, top, paintSize.width - paintW - left, paintH );
+		}
+		
+		g.drawImage( image, left, top, paintW, paintH, null );
+	}
+	
+	public Dimension getMinimumSize() {
+		return minSize;
 	}
 	
 

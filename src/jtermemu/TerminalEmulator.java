@@ -40,7 +40,11 @@ public class TerminalEmulator extends Component {
 	}
 	
 	public void paint( Graphics g ) {
-		gfxScr.paint( g );
+		gfxScr.paint( g, getSize() );
+	}
+	
+	public Dimension getMinimumSize() {
+		return gfxScr.getMinimumSize();
 	}
 	
 }
