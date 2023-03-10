@@ -101,7 +101,14 @@ public class GraphicsScreen {
 		
 		int cols = textScr.getColumns();
 		int rows = textScr.getRows();
-		
+		boolean blinkSlow = false;
+		boolean blinkFast = false;
+		if ( ( frameCounter % 60 ) >= 30 ) {
+			blinkSlow = true;
+		}
+		if ( ( frameCounter % 30 ) >= 15 ) {
+			blinkFast = true;
+		}
 		int[] charBuf = new int [ CELL_WIDTH * CELL_HEIGHT ];
 		int[] buffer  = textScr.getBuffer();
 		int[] data    = new int [ 8 ];
@@ -114,6 +121,19 @@ public class GraphicsScreen {
 				int fgcol = ( cell >> TextScreen.FGCOL_SHIFT ) & 15;
 				int attr  = ( cell >> TextScreen.ATTR_SHIFT  ) & 32767;
 				int shift = ( attr & Attributes.ATTRF_THIN ) != 0 ? 1 : 2;
+				if ( ( attr & Attributes.ATTRF_BLACKEN ) == 0 ) {
+					if ( ( attr & Attributes.ATTRF_BRIGHT ) != 0 && fgcol < 8 ) {
+						fgcol += 8;
+					}
+					if ( ( attr & Attributes.ATTRF_INVERSE ) != 0 || 
+						 ( ( attr & Attributes.ATTRF_BLINKFAST ) != 0 && blinkFast ) ||
+						 ( ( attr & Attributes.ATTRF_BLINKSLOW ) != 0 && blinkSlow ) ) {
+						int temp = bgcol; bgcol = fgcol; fgcol = temp;
+					}					
+				}
+				else {
+					bgcol = fgcol = 1;
+				}
 				if ( chr >= FontData.LOW_CHAR && chr <= FontData.HIGH_CHAR ) {
 					int offs = ( chr - FontData.LOW_CHAR ) * 8;
 					for ( int cy=0; cy < 8; ++cy ) {
@@ -136,6 +156,9 @@ public class GraphicsScreen {
 					for ( int cy=0; cy < 8; ++cy ) {
 						data[cy] |= data[cy] >> 1;
 					}
+				}
+				for ( int n=0; n < CELL_WIDTH * CELL_HEIGHT; ++n ) {
+					charBuf[n] = bgcol;
 				}
 				for ( int cy=0; cy < 8; ++cy ) {
 					int b = data[cy];
