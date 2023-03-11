@@ -27,7 +27,7 @@ public class TextScreen {
 		int fgcol = 1;
 		int bgcol = 0;
 		int demomin = 0x21;
-		int demomax = 0x39;
+		int demomax = 0x43;
 		int chr = demomin;
 		for ( int y=0; y < height; ++y ) {
 			int o = y * width;
