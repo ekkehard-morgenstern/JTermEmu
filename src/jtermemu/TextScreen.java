@@ -26,6 +26,9 @@ public class TextScreen {
 		int a = 0;
 		int fgcol = 1;
 		int bgcol = 0;
+		int demomin = 0x21;
+		int demomax = 0x39;
+		int chr = demomin;
 		for ( int y=0; y < height; ++y ) {
 			int o = y * width;
 			for ( int x=0; x < width; ++x ) {
@@ -48,12 +51,15 @@ public class TextScreen {
 				case 13: attr |= Attributes.ATTRF_STRIKE_HORIZONTAL; break;
 				case 14: attr |= Attributes.ATTRF_STRIKE_VERTICAL; break;
 				}
-				buffer[o+x] = ( attr << ATTR_SHIFT ) | ( bgcol << BGCOL_SHIFT ) | ( fgcol << FGCOL_SHIFT ) | 0x23;
+				buffer[o+x] = ( attr << ATTR_SHIFT ) | ( bgcol << BGCOL_SHIFT ) | ( fgcol << FGCOL_SHIFT ) | chr;
 				if ( ++fgcol > 7 ) {
 					fgcol = 0;
 					if ( ++bgcol > 7 ) {
 						bgcol = 0;
 					}
+				}
+				if ( ++chr > demomax ) {
+					chr = demomin;
 				}
 			}
 		}
