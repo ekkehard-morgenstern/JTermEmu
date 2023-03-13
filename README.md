@@ -1,5 +1,5 @@
 # JTermEmu
-This is a terminal emulator written in Java, currently only as a proof of concept that it actually works in realtime at 60 fps, even on lower-spec hardware. I wrote the same program roughly 20 years ago, but lost its source code. So I rewrote it.
+This is a terminal emulator written in Java, currently only as a proof of concept that it actually works in realtime at 60 fps, even on lower-spec hardware. I wrote the same program roughly 20 years ago, but lost its source code. So I rewrote it from scratch.
 
 It has many features like overline, underline, double underline, slow blink, fast blink, color, thin, bold, blacken and various strike-out modes.
 
