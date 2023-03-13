@@ -168,6 +168,51 @@ public class GraphicsScreen {
 						charBuf[ ( 2 + cy ) * CELL_WIDTH + cx ] = col;
 					}
 				}
+				if ( ( attr & Attributes.ATTRF_OVERLINE ) != 0 ) {
+					for ( int cx=0; cx < CELL_WIDTH; ++cx ) {
+						charBuf[ cx ] = fgcol;
+					}					
+				}
+				if ( ( attr & Attributes.ATTRF_DOUBLE_UNDERLINE ) != 0 ) {
+					int offs1 = ( CELL_HEIGHT-3 ) * CELL_WIDTH;
+					int offs2 = ( CELL_HEIGHT-1 ) * CELL_WIDTH;
+					for ( int cx=0; cx < CELL_WIDTH; ++cx ) {
+						charBuf[ offs1 + cx ] = fgcol;
+					}
+					for ( int cx=0; cx < CELL_WIDTH; ++cx ) {
+						charBuf[ offs2 + cx ] = fgcol;
+					}
+				}
+				else if ( ( attr & Attributes.ATTRF_UNDERLINE ) != 0 ) {
+					int offs1 = ( CELL_HEIGHT-3 ) * CELL_WIDTH;
+					for ( int cx=0; cx < CELL_WIDTH; ++cx ) {
+						charBuf[ offs1 + cx ] = fgcol;
+					}					
+				}
+				if ( ( attr & Attributes.ATTRF_STRIKE_DIAGONAL_TLBR ) != 0 ) {
+					int offs = 2 * CELL_WIDTH;
+					for ( int cx=0; cx < CELL_WIDTH; ++cx ) {
+						charBuf[ offs + cx*CELL_WIDTH + cx ] = 1;
+					}					
+				}
+				if ( ( attr & Attributes.ATTRF_STRIKE_DIAGONAL_BLTR ) != 0 ) {
+					int offs = 2 * CELL_WIDTH;
+					for ( int cx=0; cx < CELL_WIDTH; ++cx ) {
+						charBuf[ offs + cx*CELL_WIDTH + (CELL_WIDTH-1-cx) ] = 1;
+					}										
+				}
+				if ( ( attr & Attributes.ATTRF_STRIKE_HORIZONTAL ) != 0 ) {
+					int offs = ( 2 + 5 ) * CELL_WIDTH;
+					for ( int cx=0; cx < CELL_WIDTH; ++cx ) {
+						charBuf[ offs + cx ] = 1;
+					}																				
+				}
+				if ( ( attr & Attributes.ATTRF_STRIKE_VERTICAL ) != 0 ) {
+					int offs = 2 * CELL_WIDTH;
+					for ( int cx=0; cx < CELL_WIDTH; ++cx ) {
+						charBuf[ offs + cx*CELL_WIDTH + CELL_WIDTH/2 ] = 1;
+					}																				
+				}
 				raster.setPixels( x*CELL_WIDTH, y*CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT, charBuf );
 			}
 		}
