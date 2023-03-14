@@ -36,6 +36,9 @@ public class TextScreen {
 	private boolean escape = false;
 	private boolean osc = false;
 	private boolean csi = false;
+	private boolean utf8 = false;
+	private int utf8_remain = 0;
+	private int utf8_cp = 0;
 	private String oscSeq, csiSeq;
 	private JFrame frame;
 	
@@ -239,7 +242,38 @@ public class TextScreen {
 		
 	}
 	
-	private void writech( int c ) {
+	private void writech( int c, boolean iscp ) {
+		if ( utf8 ) {
+			if ( ( c & 0xc0 ) == 0x80 ) {
+				utf8_cp = ( utf8_cp << 6 ) | ( c & 0x3f );
+				if ( --utf8_remain <= 0 ) {
+					int cp = utf8_cp;
+					utf8 = false; utf8_cp = 0; utf8_remain = 0;
+					writech( cp, true );
+				}
+			}
+			else {
+				int cp = utf8_cp;
+				utf8 = false; utf8_cp = 0; utf8_remain = 0;
+				writech( cp, true  ); 
+				writech( c , false );
+			}
+			return;
+		}
+		else if ( !iscp ) {
+			if ( ( c & 0xe0 ) == 0xc0 ) {	// 2 byte cp
+				utf8 = true; utf8_cp = c & 0x1f; utf8_remain = 1;
+				return;
+			}
+			else if ( ( c & 0xf0 ) == 0xe0 ) { 	// 3 byte cp
+				utf8 = true; utf8_cp = c & 0x0f; utf8_remain = 2;
+				return;
+			}
+			else if ( ( c & 0xf8 ) == 0xf0 ) {	// 4 byte cp
+				utf8 = true; utf8_cp = c & 0x07; utf8_remain = 3;				
+				return;
+			}
+		}
 		if ( escape ) {
 			if ( !osc && !csi ) {
 				if ( c == ']' ) {	// OSC
@@ -301,7 +335,7 @@ public class TextScreen {
 	public void write( byte[] arr, int offs, int len ) {
 		for ( int i=0; i < len; ++i ) {
 			int c = arr[offs+i] & 255;
-			writech( c );			
+			writech( c, false );			
 		}
 	}
 	
