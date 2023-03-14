@@ -23,36 +23,46 @@
 
 package jtermemu;
 
-import java.awt.Dimension;
+import java.io.IOException;
+import java.io.InputStream;
 
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
+public class InputThread extends Thread {
 
-public class JTermEmuMain {
-
-	public static void createAndShowGUI() {
-		
-        JFrame frame = new JFrame("Terminal Emulator");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        TerminalEmulator component = new TerminalEmulator( frame );
-        frame.add(component);     
-        
-        Dimension compSize = component.getMinimumSize();
-        Dimension minSize = new Dimension( compSize.width + 16, compSize.height + 48 );
-        
-        frame.setMinimumSize( minSize );
-
-        // display window
-        frame.setVisible(true);
+	private static final int 	BUFSIZ = 1024;
+	
+	private InputStream 		istream;
+	private TextScreen 			textScr;
+	private byte[] 				buffer;
+	
+	InputThread( InputStream istream_, TextScreen textScr_ ) {
+		istream = istream_;
+		textScr = textScr_;
+		buffer  = new byte[BUFSIZ];
 	}
 	
-	public static void main(String[] args) {
-		SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                createAndShowGUI();
-            }
-        });
+	public void run() {
+		try {
+			for (;;) {
+				int avail = istream.available();
+				if ( avail > 0 ) {
+					if ( avail > BUFSIZ ) avail = BUFSIZ;
+					istream.read( buffer, 0, avail );
+				}
+				else {
+					int b = istream.read();
+					if ( b < 0 ) break;
+					buffer[0] = (byte) b;
+					avail = 1;
+				}
+				textScr.write( buffer, 0, avail );
+			}
+		} 
+		catch ( IOException e ) {
+			System.err.println( "Exception while reading standard output from shell:" );
+			e.printStackTrace();
+			System.exit(1);
+		}
 	}
-
+	
+	
 }

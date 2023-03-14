@@ -23,12 +23,13 @@
 
 package jtermemu;
 
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.awt.image.IndexColorModel;
 import java.awt.image.WritableRaster;
+
+import javax.swing.JFrame;
 
 /**
  * 
@@ -78,16 +79,18 @@ public class GraphicsScreen {
 	private TextScreen textScr = null;
 	private Dimension minSize = null;
 	private long frameCounter = 0;
+	private JFrame frame = null;
 	
 	private static final int CELL_WIDTH = 11;
 	private static final int CELL_HEIGHT = 15;
 	
-	public GraphicsScreen() {
+	public GraphicsScreen( JFrame frame_ ) {
+		frame = frame_;
 		init();
 	}
 	
 	private void init() {
-		textScr = new TextScreen();
+		textScr = new TextScreen( frame );
 		initImage();
 	}
 	
@@ -296,6 +299,10 @@ public class GraphicsScreen {
 	
 	public Dimension getMinimumSize() {
 		return minSize;
+	}
+	
+	public TextScreen getTextScreen() {
+		return textScr;
 	}
 	
 

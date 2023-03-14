@@ -23,10 +23,21 @@
 
 package jtermemu;
 
+import javax.swing.JFrame;
+
 public class TextScreen {
 
 	private int width = 80;
 	private int height = 25;
+	private int cursX = 0;
+	private int cursY = 0;
+	private int colorF = 0, colorB = 0;
+	private int userA = 0;
+	private boolean escape = false;
+	private boolean osc = false;
+	private boolean csi = false;
+	private String oscSeq, csiSeq;
+	private JFrame frame;
 	
 	public static final int FGCOL_SHIFT = 8;
 	public static final int BGCOL_SHIFT = 12;
@@ -40,12 +51,13 @@ public class TextScreen {
 	 */
 	private int[] buffer = null; 
 	
-	TextScreen() {
+	TextScreen( JFrame frame_ ) {
+		frame = frame_;
 		init();
 	}
 	
-	private void init() {
-		buffer = new int [ width * height ];
+	/*
+	private void test() {
 		int a = 0;
 		int fgcol = 1;
 		int bgcol = 0;
@@ -85,6 +97,211 @@ public class TextScreen {
 					chr = demomin;
 				}
 			}
+		}		
+	}
+	*/
+	
+	private void init() {
+		buffer = new int [ width * height ];
+		oscSeq = new String();
+		csiSeq = new String();
+		cls( 1, 0 );
+	}
+	
+	private void color( int fgcol, int bgcol ) {
+		colorF = fgcol & 15;
+		colorB = bgcol & 15;
+	}
+	
+	private void attrib( int a ) {
+		userA = a & 32767;
+	}
+	
+	private void cls( int fgcol, int bgcol ) {
+		color( fgcol, bgcol ); attrib( 0 );
+		int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
+		int bufsiz = width * height;
+		for ( int i=0; i < bufsiz; ++i ) buffer[i] = v;		
+	}
+	
+	private void gotoxy( int x, int y ) {
+		cursX = x;
+		cursY = y;
+		if ( cursX < 0 ) cursX = 0; else if ( cursX >= width  ) cursX = width -1;
+		if ( cursY < 0 ) cursY = 0; else if ( cursY >= height ) cursY = height-1;
+	}
+	
+	private void handleOsc() {
+		System.out.println( oscSeq );
+		int pos = oscSeq.indexOf( ';' );
+		if ( pos < 0 ) return;
+		String s1 = oscSeq.substring( 0, pos );
+		String s2 = oscSeq.substring( pos + 1 );
+		// System.out.println( s1 );
+		// System.out.println( s2 );
+		if ( s1.equals("0") ) {
+			// Set Window Title + Icon
+			frame.setTitle( s2 );			
+		}
+	}
+	
+	private int colorXlat( int isoNum ) {
+		switch ( isoNum ) {
+		case 0:	// BLACK
+			return 1;
+		case 1:	// RED
+			return 2;
+		case 2:	// GREEN
+			return 3;
+		case 3:	// YELLOW
+			return 4;
+		case 4: // BLUE
+			return 5;
+		case 5:	// MAGENTA
+			return 6;
+		case 6:	// CYAN
+			return 7;
+		case 7:	// WHITE
+			return 0;
+		}
+		return 0;
+	}
+	private void handleCsi( int c ) {
+		// System.out.println( csiSeq );
+		// System.out.println( (char) c );
+		int[] args = new int [10];
+		int nargs = 0;
+		int oldpos = 0;
+		int len = csiSeq.length();
+		while ( oldpos < len ) {
+			int pos = csiSeq.indexOf( ';', oldpos );
+			if ( pos < 0 ) pos = len;
+			args[nargs++] = Integer.valueOf( csiSeq.substring( oldpos, pos ) ).intValue();
+			oldpos = pos + 1;
+		}
+		if ( c == 'm' ) {
+			for ( int i=0; i < nargs; ++i ) {
+				int arg = args[i];
+				if ( arg >= 30 && arg <= 37 ) {
+					colorF = colorXlat( arg - 30 );
+				}
+				else if ( arg >= 40 && arg <= 47 ) {
+					colorB = colorXlat( arg - 40 );					
+				}
+				else if ( arg >= 90 && arg <= 97 ) {
+					colorF = colorXlat( arg - 90 );					
+				}
+				else if ( arg >= 100 && arg <= 107 ) {
+					colorB = colorXlat( arg - 100 ) + 8;
+				}
+				else {
+					switch ( arg ) {
+					case 0:	// NORMAL
+						userA = 0;
+						break;
+					case 1: // BOLD / INTENSE
+						userA |= Attributes.ATTRF_BOLD;
+						break;
+					case 4:	// UNDERLINED
+						userA |= Attributes.ATTRF_UNDERLINE;
+						break;
+					case 5:	// BLINK
+						userA |= Attributes.ATTRF_BLINKSLOW;
+						break;
+					case 7:	// INVERSE
+						userA |= Attributes.ATTRF_INVERSE;
+						break;
+					case 8:	// HIDDEN
+						userA |= Attributes.ATTRF_BLACKEN;
+						break;
+					case 22: 	// not BOLD / INTENSE
+						userA &= ~Attributes.ATTRF_BOLD;
+						break;
+					case 24:	// not UNDERLINED
+						userA &= ~Attributes.ATTRF_UNDERLINE;
+						break;
+					case 25:	// not BLINK
+						userA &= ~Attributes.ATTRF_BLINKSLOW;
+						break;
+					case 27:	// not INVERSE
+						userA &= ~Attributes.ATTRF_INVERSE;
+						break;
+					case 28:	// not HIDDEN
+						userA &= ~Attributes.ATTRF_BLACKEN;
+						break;
+					}
+				}
+			}
+		}
+	}
+	
+	private void scrollUp() {
+		
+	}
+	
+	private void writech( int c ) {
+		if ( escape ) {
+			if ( !osc && !csi ) {
+				if ( c == ']' ) {	// OSC
+					osc = true;
+				}
+				else if ( c == '[' ) {	// CSI
+					csi = true;
+				}
+			}
+			else if ( osc ) {
+				if ( c == 7 ) {
+					handleOsc();
+					oscSeq = new String();
+					osc = false;
+					escape = false;
+				}	
+				else {
+					oscSeq += (char) c;
+				}
+			}
+			else if ( csi ) {
+				if ( ( c < '0' || c > '9' ) && c != ';' ) {
+					handleCsi( c );
+					csiSeq = new String();
+					csi = false;
+					escape = false;
+				}
+				else {
+					csiSeq += (char) c;
+				}
+			}
+		} 
+		else if ( c == 27 ) {
+			escape = true;
+		}
+		else if ( c == 13 ) {
+			cursX = 0;
+		}
+		else if ( c == 10 ) {
+			cursX = 0;
+			if ( ++cursY >= height ) {
+				cursY = height - 1;
+				scrollUp();
+			}
+		}
+		else {
+			int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | c;
+			buffer[ cursY * width + cursX ] = v;
+			if ( ++cursX >= width ) {
+				cursX = 0;
+				if ( ++cursY >= height ) {
+					cursY = height - 1;
+					scrollUp();
+				}
+			}
+		}
+	}
+	
+	public void write( byte[] arr, int offs, int len ) {
+		for ( int i=0; i < len; ++i ) {
+			int c = arr[offs+i] & 255;
+			writech( c );			
 		}
 	}
 	
