@@ -175,8 +175,6 @@ public class TextScreen {
 		return 0;
 	}
 	private void handleCsi( int c ) {
-		// System.out.println( csiSeq );
-		// System.out.println( (char) c );
 		int[] args = new int [10];
 		int nargs = 0;
 		int oldpos = 0;
@@ -184,7 +182,9 @@ public class TextScreen {
 		while ( oldpos < len ) {
 			int pos = csiSeq.indexOf( ';', oldpos );
 			if ( pos < 0 ) pos = len;
-			args[nargs++] = Integer.valueOf( csiSeq.substring( oldpos, pos ) ).intValue();
+			if ( csiSeq.charAt(oldpos) >= '0' && csiSeq.charAt(oldpos) <= '9' ) {
+				args[nargs++] = Integer.valueOf( csiSeq.substring( oldpos, pos ) ).intValue();
+			}
 			oldpos = pos + 1;
 		}
 		if ( c == 'm' ) {
@@ -240,6 +240,53 @@ public class TextScreen {
 					}
 				}
 			}
+		}
+		else if ( c == 'K' && nargs == 0 ) {
+			// CSI K: erase to end of line
+			int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
+			for ( int i=cursX; i < width; ++i ) {
+				buffer[ cursY * width + i ] = v;
+			}
+		}
+		else if ( c == 'J' ) {
+			int mode = 0;
+			if ( nargs == 1 ) mode = args[0]; 
+			int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
+			switch ( mode ) {
+			case 0:	// erase below
+				for ( int y=cursY+1; y < height; ++y ) {
+					for ( int x=0; x < width; ++x ) {
+						buffer[ y * width + x ] = v;
+					}
+				}
+				break;
+			case 1: // erase above
+				for ( int y=0; y < cursY; ++y ) {
+					for ( int x=0; x < width; ++x ) {
+						buffer[ y * width + x ] = v;
+					}
+				}
+				break;
+			case 2: // erase all
+				for ( int y=0; y < height; ++y ) {
+					for ( int x=0; x < width; ++x ) {
+						buffer[ y * width + x ] = v;
+					}
+				}
+				break;
+			case 3: // erase saved lines (xterm)
+				break;
+			}
+			
+		}
+		else if ( c == 'H' ) {
+			int row = 1, col = 1;
+			if ( nargs >= 1 ) row = args[0];
+			if ( nargs >= 2 ) col = args[1];
+			gotoxy( col-1, row-1 );
+		}
+		else {
+			System.out.printf( "Unsupported CSI sequence: %s%c\n", csiSeq, (char) c );
 		}
 	}
 	
@@ -309,7 +356,7 @@ public class TextScreen {
 				}
 			}
 			else if ( csi ) {
-				if ( ( c < '0' || c > '9' ) && c != ';' ) {
+				if ( c >= 64 && c < 127 ) {
 					handleCsi( c );
 					csiSeq = new String();
 					csi = false;
@@ -322,6 +369,10 @@ public class TextScreen {
 		} 
 		else if ( c == 27 ) {
 			escape = true;
+		}
+		else if ( c == 0x9b ) {
+			escape = true;
+			csi = true;
 		}
 		else if ( c == 13 ) {
 			hideCursor();
@@ -353,8 +404,6 @@ public class TextScreen {
 			hideCursor();
 			if ( cursX > 0 ) {
 				--cursX;
-				int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
-				buffer[ cursY * width + cursX ] = v;				
 			}
 			showCursor();
 		}
