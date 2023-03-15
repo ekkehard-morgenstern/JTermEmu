@@ -363,6 +363,9 @@ public class TextScreen {
 		}
 		else {
 			hideCursor();
+			if ( c > 255 ) {
+				c = FontData.UNSUPPORTED_CHAR;
+			}
 			int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | c;
 			buffer[ cursY * width + cursX ] = v;
 			if ( ++cursX >= width ) {

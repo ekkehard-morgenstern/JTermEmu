@@ -27,6 +27,7 @@ public class FontData {
 	
 	public static final int LOW_CHAR = 0;
 	public static final int HIGH_CHAR = 255;
+	public static final int UNSUPPORTED_CHAR = 0x9f;
 	
 	public static final byte[] undefbits = {
 			// ** undefined
@@ -1473,14 +1474,14 @@ public class FontData {
 			(byte) 0b00000000,
 			(byte) 0b00000000,
 			// 9F 
-			(byte) 0b00000000,
-			(byte) 0b00000000,
-			(byte) 0b00000000,
-			(byte) 0b00000000,
-			(byte) 0b00000000,
-			(byte) 0b00000000,
-			(byte) 0b00000000,
-			(byte) 0b00000000,
+			(byte) 0b11111111,
+			(byte) 0b10000001,
+			(byte) 0b10100101,
+			(byte) 0b10011001,
+			(byte) 0b10011001,
+			(byte) 0b10100101,
+			(byte) 0b10000001,
+			(byte) 0b11111111,			
 			// A0 NBSP
 			(byte) 0b10010000,
 			(byte) 0b11010000,
