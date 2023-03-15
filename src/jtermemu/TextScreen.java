@@ -23,6 +23,8 @@
 
 package jtermemu;
 
+import java.util.concurrent.Semaphore;
+
 import javax.swing.JFrame;
 
 public class TextScreen {
@@ -41,6 +43,8 @@ public class TextScreen {
 	private int utf8_cp = 0;
 	private String oscSeq, csiSeq;
 	private JFrame frame;
+	private Semaphore writeSem = null;
+	private int cursorVisibleNest = 0;
 	
 	public static final int FGCOL_SHIFT = 8;
 	public static final int BGCOL_SHIFT = 12;
@@ -108,6 +112,7 @@ public class TextScreen {
 		buffer = new int [ width * height ];
 		oscSeq = new String();
 		csiSeq = new String();
+		writeSem = new Semaphore( 1, true );
 		cls( 1, 0 );
 	}
 	
@@ -124,14 +129,17 @@ public class TextScreen {
 		color( fgcol, bgcol ); attrib( 0 );
 		int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
 		int bufsiz = width * height;
-		for ( int i=0; i < bufsiz; ++i ) buffer[i] = v;		
+		for ( int i=0; i < bufsiz; ++i ) buffer[i] = v;
+		showCursor();
 	}
 	
 	private void gotoxy( int x, int y ) {
+		hideCursor();
 		cursX = x;
 		cursY = y;
 		if ( cursX < 0 ) cursX = 0; else if ( cursX >= width  ) cursX = width -1;
 		if ( cursY < 0 ) cursY = 0; else if ( cursY >= height ) cursY = height-1;
+		showCursor();
 	}
 	
 	private void handleOsc() {
@@ -310,16 +318,21 @@ public class TextScreen {
 			escape = true;
 		}
 		else if ( c == 13 ) {
+			hideCursor();
 			cursX = 0;
+			showCursor();
 		}
 		else if ( c == 10 ) {
+			hideCursor();
 			cursX = 0;
 			if ( ++cursY >= height ) {
 				cursY = height - 1;
 				scrollUp();
 			}
+			showCursor();
 		}
 		else {
+			hideCursor();
 			int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | c;
 			buffer[ cursY * width + cursX ] = v;
 			if ( ++cursX >= width ) {
@@ -329,14 +342,38 @@ public class TextScreen {
 					scrollUp();
 				}
 			}
+			showCursor();
+		}
+	}
+	
+	private void hideCursor() {
+		if ( --cursorVisibleNest == 0 ) {
+			buffer[ cursY * width + cursX ] &= ~( Attributes.ATTRF_BLINKSLOW << ATTR_SHIFT );
+		}
+	}
+	
+	private void showCursor() {
+		if ( ++cursorVisibleNest == 1 ) {
+			buffer[ cursY * width + cursX ] |= Attributes.ATTRF_BLINKSLOW << ATTR_SHIFT;			
 		}
 	}
 	
 	public void write( byte[] arr, int offs, int len ) {
+		try {
+			writeSem.acquire();
+		}
+		catch ( InterruptedException e ) {
+			System.err.println( "Thread was interrupted while waiting for semaphore" );
+			e.printStackTrace();
+			System.exit( 1 );
+		}
+		hideCursor();
 		for ( int i=0; i < len; ++i ) {
 			int c = arr[offs+i] & 255;
 			writech( c, false );			
 		}
+		showCursor();
+		writeSem.release();
 	}
 	
 	public int[] getBuffer() {
