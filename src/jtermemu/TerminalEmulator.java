@@ -31,12 +31,13 @@ import javax.swing.JFrame;
 import javax.swing.Timer;
 
 public class TerminalEmulator extends Component {
+	
 	private static final long serialVersionUID = 1L;
 	private Timer timer;
 	private GraphicsScreen gfxScr = null;
 	private ShellBinding shell = null;
 	private JFrame frame = null;
-	
+
 	TerminalEmulator( JFrame frame_ ) {
 		frame = frame_;
 		init();

@@ -99,17 +99,17 @@ public class GraphicsScreen {
 		int allocHeight = rows * CELL_HEIGHT;
 		image = new BufferedImage( allocWidth, allocHeight, BufferedImage.TYPE_BYTE_INDEXED,
 					new IndexColorModel( 4, 16, 
-							new byte[] { (byte) 0x88, (byte) 0x00, (byte) 0x88, (byte) 0x00, 
+							new byte[] { (byte) 0xcc, (byte) 0x00, (byte) 0x88, (byte) 0x00, 
 										 (byte) 0x88, (byte) 0x00, (byte) 0x88, (byte) 0x00, 
-										 (byte) 0xff, (byte) 0xaa, (byte) 0xff, (byte) 0x00, 
+										 (byte) 0xff, (byte) 0x88, (byte) 0xff, (byte) 0x00, 
 										 (byte) 0xff, (byte) 0x00, (byte) 0xff, (byte) 0x00 }, 
-							new byte[] { (byte) 0x88, (byte) 0x00, (byte) 0x00, (byte) 0x88, 
+							new byte[] { (byte) 0xcc, (byte) 0x00, (byte) 0x00, (byte) 0x88, 
 										 (byte) 0x88, (byte) 0x00, (byte) 0x00, (byte) 0x88, 
-										 (byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0xff, 
+										 (byte) 0xff, (byte) 0x88, (byte) 0x00, (byte) 0xff, 
 										 (byte) 0xff, (byte) 0x00, (byte) 0x00, (byte) 0xff },
-							new byte[] { (byte) 0x88, (byte) 0x00, (byte) 0x00, (byte) 0x00, 
+							new byte[] { (byte) 0xcc, (byte) 0x00, (byte) 0x00, (byte) 0x00, 
 									     (byte) 0x00, (byte) 0x88, (byte) 0x88, (byte) 0x88, 
-									     (byte) 0xff, (byte) 0xaa, (byte) 0x00, (byte) 0x00, 
+									     (byte) 0xff, (byte) 0x88, (byte) 0x00, (byte) 0x00, 
 									     (byte) 0x00, (byte) 0xff, (byte) 0xff, (byte) 0xff } 
 					)
 				);		

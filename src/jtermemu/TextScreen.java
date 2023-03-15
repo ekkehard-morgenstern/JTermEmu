@@ -47,6 +47,44 @@ public class TextScreen {
 	public static final int FGCOL_SHIFT = 8;
 	public static final int BGCOL_SHIFT = 12;
 	public static final int ATTR_SHIFT  = 16;
+
+	private static final byte[] color16plus = {
+			(byte) 1, (byte) 2, (byte) 2, (byte) 2, (byte) 10, (byte) 10, (byte) 3,
+			(byte) 4, (byte) 4, (byte) 4, (byte) 12, (byte) 12, (byte) 3, (byte) 4,
+			(byte) 4, (byte) 4, (byte) 12, (byte) 12, (byte) 3, (byte) 4, (byte) 4,
+			(byte) 4, (byte) 12, (byte) 12, (byte) 11, (byte) 4, (byte) 4, (byte) 4,
+			(byte) 12, (byte) 12, (byte) 11, (byte) 11, (byte) 4, (byte) 4, (byte) 12,
+			(byte) 12, (byte) 5, (byte) 6, (byte) 6, (byte) 6, (byte) 6, (byte) 10,
+			(byte) 7, (byte) 9, (byte) 9, (byte) 9, (byte) 9, (byte) 12, (byte) 7,
+			(byte) 9, (byte) 9, (byte) 9, (byte) 9, (byte) 12, (byte) 7, (byte) 9,
+			(byte) 9, (byte) 9, (byte) 0, (byte) 12, (byte) 7, (byte) 9, (byte) 9,
+			(byte) 0, (byte) 0, (byte) 0, (byte) 11, (byte) 11, (byte) 9, (byte) 0,
+			(byte) 0, (byte) 8, (byte) 5, (byte) 6, (byte) 6, (byte) 6, (byte) 6,
+			(byte) 6, (byte) 7, (byte) 9, (byte) 9, (byte) 9, (byte) 9, (byte) 9,
+			(byte) 7, (byte) 9, (byte) 9, (byte) 9, (byte) 9, (byte) 9, (byte) 7,
+			(byte) 9, (byte) 9, (byte) 9, (byte) 0, (byte) 0, (byte) 7, (byte) 9,
+			(byte) 9, (byte) 0, (byte) 0, (byte) 0, (byte) 7, (byte) 9, (byte) 9,
+			(byte) 0, (byte) 0, (byte) 8, (byte) 5, (byte) 6, (byte) 6, (byte) 6,
+			(byte) 6, (byte) 14, (byte) 7, (byte) 9, (byte) 9, (byte) 9, (byte) 0,
+			(byte) 14, (byte) 7, (byte) 9, (byte) 9, (byte) 9, (byte) 0, (byte) 0,
+			(byte) 7, (byte) 9, (byte) 9, (byte) 0, (byte) 0, (byte) 0, (byte) 7,
+			(byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 15, (byte) 15,
+			(byte) 0, (byte) 0, (byte) 0, (byte) 8, (byte) 13, (byte) 6, (byte) 6,
+			(byte) 6, (byte) 14, (byte) 14, (byte) 7, (byte) 9, (byte) 9, (byte) 0,
+			(byte) 0, (byte) 14, (byte) 7, (byte) 9, (byte) 9, (byte) 0, (byte) 0,
+			(byte) 0, (byte) 7, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0,
+			(byte) 15, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 15,
+			(byte) 15, (byte) 0, (byte) 0, (byte) 0, (byte) 8, (byte) 13, (byte) 13,
+			(byte) 6, (byte) 14, (byte) 14, (byte) 14, (byte) 13, (byte) 13, (byte) 9,
+			(byte) 14, (byte) 14, (byte) 14, (byte) 7, (byte) 9, (byte) 9, (byte) 0,
+			(byte) 0, (byte) 8, (byte) 15, (byte) 15, (byte) 0, (byte) 0, (byte) 0,
+			(byte) 8, (byte) 15, (byte) 15, (byte) 0, (byte) 0, (byte) 0, (byte) 8,
+			(byte) 15, (byte) 15, (byte) 8, (byte) 8, (byte) 8, (byte) 8, (byte) 1,
+			(byte) 1, (byte) 1, (byte) 1, (byte) 1, (byte) 1, (byte) 1, (byte) 9,
+			(byte) 9, (byte) 9, (byte) 9, (byte) 9, (byte) 9, (byte) 9, (byte) 9,
+			(byte) 9, (byte) 9, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0,
+			(byte) 0, (byte) 8
+	};
 	
 	/**
 	 * Text screen buffer.
@@ -170,6 +208,12 @@ public class TextScreen {
 		case 7:	// WHITE
 			return 0;
 		}
+		if ( isoNum >= 8 && isoNum <= 15 ) {
+			return colorXlat( isoNum - 8 ) + 8;
+		}
+		if ( isoNum >= 16 && isoNum < 16 + color16plus.length ) {
+			return color16plus[ isoNum - 16 ];
+		}
 		return 0;
 	}
 	private void handleCsi( int c ) {
@@ -189,7 +233,11 @@ public class TextScreen {
 			}
 			oldpos = pos + 1;
 		}
+		// System.out.printf( "CSI sequence: %s%c\n", csiSeq, (char) c );
 		if ( c == 'm' ) {
+			if ( nargs == 0 ) {	// normal
+				userA = 0; colorF = 1; colorB = 0;
+			}
 			for ( int i=0; i < nargs; ++i ) {
 				int arg = args[i];
 				if ( arg >= 30 && arg <= 37 ) {
@@ -262,7 +310,8 @@ public class TextScreen {
 						break;
 					case 38: 	// select foreground color
 						if ( i + 2 < nargs && args[i+1] == 5 ) {
-							colorF = args[i+2] & 15;
+							colorF = colorXlat( args[i+2] );
+							i = nargs - 1;
 						}
 						break;
 					case 39:	// default foreground color
@@ -270,7 +319,8 @@ public class TextScreen {
 						break;
 					case 48:	// select background color
 						if ( i + 2 < nargs && args[i+1] == 5 ) {
-							colorB = args[i+2] & 15;
+							colorB = colorXlat( args[i+2] );
+							i = nargs - 1;
 						}
 						break;
 					case 49:	// default background color
@@ -357,6 +407,40 @@ public class TextScreen {
 				++sourceX; ++targetX;
 			}
 		}
+		/*
+			Unsupported CSI sequence: ?2004h
+			Unsupported CSI sequence: ?1049h
+			Unsupported CSI sequence: 22;0;0t
+			Unsupported CSI sequence: ?1h
+			Unsupported CSI sequence: ?2004h
+			Unsupported CSI sequence: 1;24r
+			Unsupported CSI sequence: ?12h
+			Unsupported CSI sequence: ?12l
+			Unsupported CSI sequence: 22;2t
+			Unsupported CSI sequence: 22;1t
+			Unsupported CSI sequence: ?25l
+			Unsupported CSI sequence: ?25h
+			Unsupported CSI sequence: ?25l
+			Unsupported CSI sequence: ?2004h
+			Unsupported CSI sequence: ?25h
+			Unsupported CSI sequence: ?25l
+			Unsupported CSI sequence: ?25h
+			Unsupported CSI sequence: ?25l
+			Unsupported CSI sequence: ?25h
+			Unsupported CSI sequence: ?25l
+			Unsupported CSI sequence: ?2004l
+			Unsupported CSI sequence: 23;2t
+			Unsupported CSI sequence: 23;1t
+			Unsupported CSI sequence: 22;2t
+			Unsupported CSI sequence: 22;1t
+			Unsupported CSI sequence: 23;2t
+			Unsupported CSI sequence: 23;1t
+			Unsupported CSI sequence: ?2004l
+			Unsupported CSI sequence: ?1l
+			Unsupported CSI sequence: ?25h
+			Unsupported CSI sequence: ?1049l
+			Unsupported CSI sequence: 23;0;0t
+		*/
 		else {
 			System.out.printf( "Unsupported CSI sequence: %s%c\n", csiSeq, (char) c );
 		}
