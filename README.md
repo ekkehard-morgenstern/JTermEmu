@@ -13,3 +13,4 @@ I've added a couple of features from real terminal emulators, like 8-bit Unicode
 
 ![Bildschirmfoto_2023-03-15_11-47-00](https://user-images.githubusercontent.com/52674537/225286873-a2e6004e-69d0-4208-80d2-00bffe06d013.png)
 
+https://www.youtube.com/watch?v=IBXD-YB9dhk
