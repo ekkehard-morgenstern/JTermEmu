@@ -1498,6 +1498,7 @@ public class FontData {
 			(byte) 0b00010000,
 			(byte) 0b00010000,
 			(byte) 0b00010000,
+			(byte) 0b00010000,
 			// A2 cent
 			(byte) 0b00010000,
 			(byte) 0b00010000,
