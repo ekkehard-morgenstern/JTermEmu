@@ -143,13 +143,10 @@ public class TextScreen {
 	}
 	
 	private void handleOsc() {
-		System.out.println( oscSeq );
 		int pos = oscSeq.indexOf( ';' );
 		if ( pos < 0 ) return;
 		String s1 = oscSeq.substring( 0, pos );
 		String s2 = oscSeq.substring( pos + 1 );
-		// System.out.println( s1 );
-		// System.out.println( s2 );
 		if ( s1.equals("0") ) {
 			// Set Window Title + Icon
 			frame.setTitle( s2 );			
@@ -208,7 +205,7 @@ public class TextScreen {
 				else {
 					switch ( arg ) {
 					case 0:	// NORMAL
-						userA = 0;
+						userA = 0; colorF = 1; colorB = 0;
 						break;
 					case 1: // BOLD / INTENSE
 						userA |= Attributes.ATTRF_BOLD;
@@ -247,7 +244,16 @@ public class TextScreen {
 	}
 	
 	private void scrollUp() {
-		
+		hideCursor();
+		int nblock = width * ( height - 1 );
+		for ( int i=0; i < nblock; ++i ) {
+			buffer[i] = buffer[ i + width ];
+		}
+		int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
+		for ( int i=0; i < width; ++i ) {
+			buffer[ nblock + i ] = v; 
+		}
+		showCursor();
 	}
 	
 	private void writech( int c, boolean iscp ) {
@@ -330,6 +336,30 @@ public class TextScreen {
 				scrollUp();
 			}
 			showCursor();
+		}
+		else if ( c == 9 ) { // HTAB
+			hideCursor();
+			cursX = ( cursX + 8 ) & ~7;
+			if ( cursX >= width ) {
+				cursX %= width;
+				if ( ++cursY >= height ) {
+					cursY = height - 1;
+					scrollUp();
+				}				
+			}
+			showCursor();
+		}
+		else if ( c == 8 ) { // BKSP
+			hideCursor();
+			if ( cursX > 0 ) {
+				--cursX;
+				int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
+				buffer[ cursY * width + cursX ] = v;				
+			}
+			showCursor();
+		}
+		else if ( c == 7 ) {	// BEL
+			
 		}
 		else {
 			hideCursor();

@@ -57,7 +57,7 @@ public class TerminalEmulator extends Component {
 		timer = new Timer( 1000/60, timerListener );
 		timer.start();
 		
-		shell = new ShellBinding( gfxScr.getTextScreen() );
+		shell = new ShellBinding( gfxScr.getTextScreen(), frame );
 	}
 
 	private void doTimer() {
