@@ -14,8 +14,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-    NOTE: Programs created with PriamosBASIC do not fall under this license.
-
     CONTACT INFO:
         E-Mail: ekkehard@ekkehardmorgenstern.de
         Mail: Ekkehard Morgenstern, Mozartstr. 1, D-76744 Woerth am Rhein, Germany, Europe 
@@ -25,6 +23,7 @@ package jtermemu;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.IOException;
 
 import javax.swing.JFrame;
 
@@ -72,10 +71,14 @@ public class ShellBinding {
 			stdErrCapture.start();
 			stdInFeeder.start();
 			
+			System.out.printf( "pid = %d\n", (int) shellProc.pid() );
+			
 			KeyListener keyListener = new KeyListener() {
 				public void keyTyped( KeyEvent e ) {
 					char c = e.getKeyChar();
-					if ( c == KeyEvent.CHAR_UNDEFINED ) return;
+					if ( c == KeyEvent.CHAR_UNDEFINED ) {
+						return;
+					}
 					byte[] bytes;
 					int v = (int) c;
 					if ( v < 0x80 ) {
@@ -106,7 +109,28 @@ public class ShellBinding {
 					stdInFeeder.enterInput( bytes );
 				}
 				public void keyPressed( KeyEvent e ) {
-					
+					char c = e.getKeyChar();
+					if ( c != KeyEvent.CHAR_UNDEFINED ) return;
+					int code = e.getKeyCode();
+					// System.out.printf( "keyCode = %d\n", code );
+					byte[] bytes = null;
+					switch ( code ) {
+					case KeyEvent.VK_UP: 
+						bytes = "\u001b[A".getBytes();
+						break;
+					case KeyEvent.VK_DOWN: 
+						bytes = "\u001b[B".getBytes();
+						break;
+					case KeyEvent.VK_RIGHT: 
+						bytes = "\u001b[C".getBytes();
+						break;
+					case KeyEvent.VK_LEFT: 
+						bytes = "\u001b[D".getBytes();
+						break;
+					}
+					if ( bytes != null ) {
+						stdInFeeder.enterInput( bytes );
+					}
 				}
 				public void keyReleased( KeyEvent e ) {
 					

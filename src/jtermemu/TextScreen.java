@@ -14,8 +14,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-    NOTE: Programs created with PriamosBASIC do not fall under this license.
-
     CONTACT INFO:
         E-Mail: ekkehard@ekkehardmorgenstern.de
         Mail: Ekkehard Morgenstern, Mozartstr. 1, D-76744 Woerth am Rhein, Germany, Europe 
@@ -179,6 +177,10 @@ public class TextScreen {
 		int nargs = 0;
 		int oldpos = 0;
 		int len = csiSeq.length();
+		boolean DEC = false; // DEC terminal sequence
+		if ( len >= 1 && csiSeq.charAt(0) == '?' ) {
+			DEC = true; oldpos = 1;
+		}
 		while ( oldpos < len ) {
 			int pos = csiSeq.indexOf( ';', oldpos );
 			if ( pos < 0 ) pos = len;
@@ -210,11 +212,20 @@ public class TextScreen {
 					case 1: // BOLD / INTENSE
 						userA |= Attributes.ATTRF_BOLD;
 						break;
+					case 2: // THIN / DARK
+						userA |= Attributes.ATTRF_THIN;
+						break;						
 					case 4:	// UNDERLINED
 						userA |= Attributes.ATTRF_UNDERLINE;
 						break;
-					case 5:	// BLINK
+					case 21:	// DOUBLE UNDERLINED
+						userA |= Attributes.ATTRF_DOUBLE_UNDERLINE;
+						break;
+					case 5:	// BLINK (slow)
 						userA |= Attributes.ATTRF_BLINKSLOW;
+						break;
+					case 6:	// BLINK (fast)
+						userA |= Attributes.ATTRF_BLINKFAST;
 						break;
 					case 7:	// INVERSE
 						userA |= Attributes.ATTRF_INVERSE;
@@ -222,20 +233,48 @@ public class TextScreen {
 					case 8:	// HIDDEN
 						userA |= Attributes.ATTRF_BLACKEN;
 						break;
-					case 22: 	// not BOLD / INTENSE
-						userA &= ~Attributes.ATTRF_BOLD;
+					case 9:	// CROSSED OUT
+						userA |= Attributes.ATTRF_STRIKE_DIAGONAL_BLTR | Attributes.ATTRF_STRIKE_DIAGONAL_TLBR;
+						break;
+					case 22: 	// not BOLD / INTENSE, not THIN / DARK
+						userA &= ~( Attributes.ATTRF_BOLD | Attributes.ATTRF_THIN );
 						break;
 					case 24:	// not UNDERLINED
-						userA &= ~Attributes.ATTRF_UNDERLINE;
+						userA &= ~( Attributes.ATTRF_UNDERLINE | Attributes.ATTRF_DOUBLE_UNDERLINE );
 						break;
 					case 25:	// not BLINK
-						userA &= ~Attributes.ATTRF_BLINKSLOW;
+						userA &= ~( Attributes.ATTRF_BLINKSLOW | Attributes.ATTRF_BLINKFAST );
 						break;
 					case 27:	// not INVERSE
 						userA &= ~Attributes.ATTRF_INVERSE;
 						break;
 					case 28:	// not HIDDEN
 						userA &= ~Attributes.ATTRF_BLACKEN;
+						break;
+					case 29:	// not CROSSED OUT
+						userA &= ~( Attributes.ATTRF_STRIKE_DIAGONAL_BLTR | Attributes.ATTRF_STRIKE_DIAGONAL_TLBR );
+						break;
+					case 53: 	// OVERLINED
+						userA |= Attributes.ATTRF_OVERLINE;
+						break;
+					case 55: 	// not OVERLINED
+						userA &= ~Attributes.ATTRF_OVERLINE;
+						break;
+					case 38: 	// select foreground color
+						if ( i + 2 < nargs && args[i+1] == 5 ) {
+							colorF = args[i+2] & 15;
+						}
+						break;
+					case 39:	// default foreground color
+						colorF = 1;
+						break;
+					case 48:	// select background color
+						if ( i + 2 < nargs && args[i+1] == 5 ) {
+							colorB = args[i+2] & 15;
+						}
+						break;
+					case 49:	// default background color
+						colorB = 0;
 						break;
 					}
 				}
@@ -284,6 +323,39 @@ public class TextScreen {
 			if ( nargs >= 1 ) row = args[0];
 			if ( nargs >= 2 ) col = args[1];
 			gotoxy( col-1, row-1 );
+		}
+		else if ( c == 'A' ) {
+			int cnt = 1;
+			if ( nargs >= 1 ) cnt = args[0];
+			gotoxy( cursX, cursY - cnt );			
+		}
+		else if ( c == 'B' ) {
+			int cnt = 1;
+			if ( nargs >= 1 ) cnt = args[0];
+			gotoxy( cursX, cursY + cnt );						
+		}
+		else if ( c == 'C' ) {
+			int cnt = 1;
+			if ( nargs >= 1 ) cnt = args[0];
+			gotoxy( cursX + cnt, cursY );			
+		}
+		else if ( c == 'D' ) {
+			int cnt = 1;
+			if ( nargs >= 1 ) cnt = args[0];
+			gotoxy( cursX - cnt, cursY );			
+		}
+		else if ( c == 'P' ) {	// delete chars
+			int cnt = 1;
+			if ( nargs >= 1 ) cnt = args[0];
+			int sourceX = cursX + 1 + cnt;
+			int targetX = cursX;
+			int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
+			int offs = cursY * width;
+			while ( targetX < width ) {
+				int data = sourceX < width ? buffer[ offs + sourceX ] : v;
+				buffer[ offs + targetX ] = data;
+				++sourceX; ++targetX;
+			}
 		}
 		else {
 			System.out.printf( "Unsupported CSI sequence: %s%c\n", csiSeq, (char) c );
@@ -345,7 +417,7 @@ public class TextScreen {
 				}
 			}
 			else if ( osc ) {
-				if ( c == 7 ) {
+				if ( c == 7 || c == 0x9c ) {	// BEL or ST
 					handleOsc();
 					oscSeq = new String();
 					osc = false;
@@ -373,6 +445,10 @@ public class TextScreen {
 		else if ( c == 0x9b ) {
 			escape = true;
 			csi = true;
+		}
+		else if ( c == 0x9d ) {
+			escape = true;
+			osc = true;
 		}
 		else if ( c == 13 ) {
 			hideCursor();
