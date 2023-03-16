@@ -43,6 +43,13 @@ public class TextScreen {
 	private JFrame frame;
 	private Semaphore writeSem = null;
 	private int cursorVisibleNest = 0;
+	private int cursorBlinkNest = 1;
+	private int saveCursX = 0, saveCursY = 0;
+	private boolean bracketedPasteMode = false;
+	private boolean onAlternateScreen = false;
+	private boolean applicationCursorKeys = false;
+	private int scrollTop = 1;
+	private int scrollBottom = 25;
 	
 	public static final int FGCOL_SHIFT = 8;
 	public static final int BGCOL_SHIFT = 12;
@@ -93,7 +100,15 @@ public class TextScreen {
 	 * 	<attr.15> <bgCol.4> <fgCol.4> <char.8>
 	 */
 	private int[] buffer = null; 
-	
+
+	/**
+	 * Alternate text screen buffer.
+	 * Each cell contains the following fields:
+	 * 
+	 * 	<attr.15> <bgCol.4> <fgCol.4> <char.8>
+	 */
+	private int[] altBuffer = null; 
+
 	TextScreen( JFrame frame_ ) {
 		frame = frame_;
 		init();
@@ -144,12 +159,23 @@ public class TextScreen {
 	}
 	*/
 	
+	private void switchScreen() {
+		hideCursor();
+		int[] temp = buffer; buffer = altBuffer; altBuffer = temp;
+		showCursor();
+	}
+	
 	private void init() {
 		buffer = new int [ width * height ];
+		altBuffer = new int [ width * height ];
 		oscSeq = new String();
 		csiSeq = new String();
 		writeSem = new Semaphore( 1, true );
 		cls( 1, 0 );
+		switchScreen();
+		cls( 1, 0 );
+		switchScreen();
+		showCursor();
 	}
 	
 	private void color( int fgcol, int bgcol ) {
@@ -162,6 +188,7 @@ public class TextScreen {
 	}
 	
 	private void cls( int fgcol, int bgcol ) {
+		hideCursor();
 		color( fgcol, bgcol ); attrib( 0 );
 		int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
 		int bufsiz = width * height;
@@ -407,6 +434,94 @@ public class TextScreen {
 				++sourceX; ++targetX;
 			}
 		}
+		else if ( DEC && c == 'h' ) {
+			int code = 0;
+			if ( nargs >= 0 ) {
+				code = args[0];
+			}
+			switch ( code ) {
+			case 1:	// enable application cursor keys
+				applicationCursorKeys = true;
+				break;
+			case 12:	// start cursor blinking
+				hideCursor();
+				++cursorBlinkNest;
+				showCursor();
+				break;
+			case 25:	// cursor visible
+				showCursor();
+				break;
+			case 1047:	// enable alternate screen buffer
+				if ( !onAlternateScreen ) {
+					switchScreen();
+					onAlternateScreen = true;
+				}
+				break;
+			case 1048:	// save cursor
+				saveCursX = cursX; saveCursY = cursY; 
+				break;
+			case 1049:	// enable alternate screen buffer, save cursor, clear screen
+				if ( !onAlternateScreen ) {
+					saveCursX = cursX; saveCursY = cursY; 
+					switchScreen();
+					cls( colorF, colorB );
+					onAlternateScreen = true;
+				}
+				break;
+			case 2004:	// enable bracketed paste mode
+				bracketedPasteMode = true;
+				break;
+			default:
+				System.out.printf( "Unknown CSI ? h code %d\n", code );
+				break;
+			}
+		}
+		else if ( DEC && c == 'l' ) {
+			int code = 0;
+			if ( nargs >= 0 ) {
+				code = args[0];
+			}
+			switch ( code ) {
+			case 1:	// disable application cursor keys
+				applicationCursorKeys = false;
+				break;
+			case 12:	// stop cursor blinking
+				hideCursor();
+				--cursorBlinkNest;
+				showCursor();
+				break;
+			case 25: 	// cursor invisible
+				hideCursor();
+				break;
+			case 1047:	// disable alternate screen buffer, clear screen
+				if ( onAlternateScreen ) {
+					switchScreen();
+					cls( colorF, colorB );
+					onAlternateScreen = false;
+				}
+				break;
+			case 1048:	// restore cursor position
+				hideCursor();
+				cursX = saveCursX; cursY = saveCursY;
+				showCursor();
+				break;
+			case 1049:	// disable alternate screen buffer
+				if ( onAlternateScreen ) {
+					hideCursor();
+					cursX = saveCursX; cursY = saveCursY;
+					showCursor();
+					switchScreen();
+					onAlternateScreen = false;
+				}
+				break;
+			case 2004:	// disable bracketed paste mode
+				bracketedPasteMode = true;
+				break;
+			default:
+				System.out.printf( "Unknown CSI ? l code %d\n", code );
+				break;
+			}			
+		}
 		/*
 			Unsupported CSI sequence: ?2004h
 			Unsupported CSI sequence: ?1049h
@@ -448,13 +563,22 @@ public class TextScreen {
 	
 	private void scrollUp() {
 		hideCursor();
-		int nblock = width * ( height - 1 );
+		int yStart = scrollTop    - 1;
+		int yEnd   = scrollBottom - 1;
+		if ( yStart < 0 ) yStart = 0; else if ( yStart > height - 1 ) yStart = height - 1;
+		if ( yEnd   < 0 ) yEnd   = 0; else if ( yEnd   > height - 1 ) yEnd   = height - 1;
+		if ( yEnd < yStart ) {
+			int temp = yStart; yStart = yEnd; yEnd = temp;
+		}
+		int nblock  = width * ( yEnd - yStart );
+		int oTarget = yStart * width;
+		int oSource = oTarget + width;
 		for ( int i=0; i < nblock; ++i ) {
-			buffer[i] = buffer[ i + width ];
+			buffer[ oTarget + i ] = buffer[ oSource + i ];
 		}
 		int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
 		for ( int i=0; i < width; ++i ) {
-			buffer[ nblock + i ] = v; 
+			buffer[ oTarget + nblock + i ] = v; 
 		}
 		showCursor();
 	}
@@ -590,13 +714,18 @@ public class TextScreen {
 	
 	private void hideCursor() {
 		if ( --cursorVisibleNest == 0 ) {
-			buffer[ cursY * width + cursX ] &= ~( Attributes.ATTRF_BLINKSLOW << ATTR_SHIFT );
+			buffer[ cursY * width + cursX ] &= ~( ( Attributes.ATTRF_BLINKSLOW | Attributes.ATTRF_INVERSE ) << ATTR_SHIFT );
 		}
 	}
 	
 	private void showCursor() {
 		if ( ++cursorVisibleNest == 1 ) {
-			buffer[ cursY * width + cursX ] |= Attributes.ATTRF_BLINKSLOW << ATTR_SHIFT;			
+			if ( cursorBlinkNest >= 1 ) {
+				buffer[ cursY * width + cursX ] |= Attributes.ATTRF_BLINKSLOW << ATTR_SHIFT;											
+			} 
+			else {
+				buffer[ cursY * width + cursX ] |= Attributes.ATTRF_INVERSE << ATTR_SHIFT;							
+			}
 		}
 	}
 	
@@ -628,6 +757,14 @@ public class TextScreen {
 	
 	public int getRows() {
 		return height;
+	}
+	
+	public boolean isInBracketedPasteMode() {
+		return bracketedPasteMode;
+	}
+
+	public boolean hasApplicationCursorKeys() {
+		return applicationCursorKeys;
 	}
 	
 }

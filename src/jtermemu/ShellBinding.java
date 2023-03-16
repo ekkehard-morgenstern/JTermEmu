@@ -114,18 +114,40 @@ public class ShellBinding {
 					int code = e.getKeyCode();
 					// System.out.printf( "keyCode = %d\n", code );
 					byte[] bytes = null;
+					// boolean bracketed = textScr.isInBracketedPasteMode();
+					boolean applic = textScr.hasApplicationCursorKeys();
 					switch ( code ) {
 					case KeyEvent.VK_UP: 
-						bytes = "\u001b[A".getBytes();
+						if ( applic ) {
+							bytes = "\u001bOA".getBytes();
+						}
+						else {
+							bytes = "\u001b[A".getBytes();
+						}
 						break;
-					case KeyEvent.VK_DOWN: 
-						bytes = "\u001b[B".getBytes();
+					case KeyEvent.VK_DOWN:
+						if ( applic ) {
+							bytes = "\u001bOB".getBytes();							
+						}
+						else {
+							bytes = "\u001b[B".getBytes();
+						}
 						break;
 					case KeyEvent.VK_RIGHT: 
-						bytes = "\u001b[C".getBytes();
+						if ( applic ) {
+							bytes = "\u001bOC".getBytes();
+						}
+						else {
+							bytes = "\u001b[C".getBytes();
+						}
 						break;
 					case KeyEvent.VK_LEFT: 
-						bytes = "\u001b[D".getBytes();
+						if ( applic ) {
+							bytes = "\u001bOD".getBytes();
+						}
+						else {
+							bytes = "\u001b[D".getBytes();
+						}
 						break;
 					}
 					if ( bytes != null ) {
