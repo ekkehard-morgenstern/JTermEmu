@@ -247,7 +247,7 @@ public class TextScreen {
 					colorB = colorXlat( arg - 40 );					
 				}
 				else if ( arg >= 90 && arg <= 97 ) {
-					colorF = colorXlat( arg - 90 );					
+					colorF = colorXlat( arg - 90 ) + 8;					
 				}
 				else if ( arg >= 100 && arg <= 107 ) {
 					colorB = colorXlat( arg - 100 ) + 8;
