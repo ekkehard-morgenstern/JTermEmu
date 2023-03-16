@@ -421,6 +421,11 @@ public class TextScreen {
 			if ( nargs >= 1 ) cnt = args[0];
 			gotoxy( cursX - cnt, cursY );			
 		}
+		else if ( c == 'L' ) {
+			int cnt = 1;
+			if ( nargs >= 1 ) cnt = args[0];
+			while ( --cnt >= 0 ) insertLine();
+		}
 		else if ( c == 'P' ) {	// delete chars
 			int cnt = 1;
 			if ( nargs >= 1 ) cnt = args[0];
@@ -512,6 +517,7 @@ public class TextScreen {
 					showCursor();
 					switchScreen();
 					onAlternateScreen = false;
+					scrollTop = 1; scrollBottom = height;
 				}
 				break;
 			case 2004:	// disable bracketed paste mode
@@ -521,6 +527,11 @@ public class TextScreen {
 				System.out.printf( "Unknown CSI ? l code %d\n", code );
 				break;
 			}			
+		}
+		else if ( c == 'r' ) {	// set scrolling region
+			scrollTop    = nargs >= 1 ? args[0] : 1;
+			scrollBottom = nargs >= 2 ? args[1] : height;
+			System.out.printf( "Scroll top/bottom set to %d/%d\n", scrollTop, scrollBottom );
 		}
 		/*
 			Unsupported CSI sequence: ?2004h
@@ -561,6 +572,60 @@ public class TextScreen {
 		}
 	}
 	
+	private void downLine() {
+		hideCursor();
+		if ( ++cursY > scrollBottom-1 ) {
+			cursY = scrollBottom - 1;
+			scrollUp();
+		}
+		showCursor();
+	}
+	
+	private void upLine() {
+		hideCursor();
+		if ( --cursY < scrollTop-1 ) {
+			cursY = scrollTop - 1;
+			scrollUp();
+		}
+		showCursor();
+	}
+	
+	private void nextLine() {
+		hideCursor();
+		cursX = 0;
+		downLine();
+		showCursor();
+	}
+
+	private void prevLine() {
+		hideCursor();
+		cursX = 0;
+		upLine();
+		showCursor();
+	}
+	
+	private void scrollDown() {
+		hideCursor();
+		int yStart = scrollTop    - 1;
+		int yEnd   = scrollBottom - 1;
+		if ( yStart < 0 ) yStart = 0; else if ( yStart > height - 1 ) yStart = height - 1;
+		if ( yEnd   < 0 ) yEnd   = 0; else if ( yEnd   > height - 1 ) yEnd   = height - 1;
+		if ( yEnd < yStart ) {
+			int temp = yStart; yStart = yEnd; yEnd = temp;
+		}
+		int nblock  = width * ( yEnd - yStart );
+		int oSource = yStart * width;
+		int oTarget = oSource + width;
+		for ( int i=nblock-1; i >= 0; --i ) {
+			buffer[ oTarget + i ] = buffer[ oSource + i ];
+		}
+		int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | 0x20;
+		for ( int i=0; i < width; ++i ) {
+			buffer[ oSource + i ] = v; 
+		}
+		showCursor();
+	}
+
 	private void scrollUp() {
 		hideCursor();
 		int yStart = scrollTop    - 1;
@@ -581,6 +646,15 @@ public class TextScreen {
 			buffer[ oTarget + nblock + i ] = v; 
 		}
 		showCursor();
+	}
+	
+	private void insertLine() {
+		if ( cursY < scrollTop-1 || cursY > scrollBottom-1 ) return;
+		System.out.printf( "cursY=%d, scrollTop=%d, scrollBottom=%d\n", cursY, scrollTop, scrollBottom );
+		int old = scrollTop;
+		scrollTop = cursY + 1;
+		scrollDown();
+		scrollTop = old;
 	}
 	
 	private void writech( int c, boolean iscp ) {
@@ -665,11 +739,7 @@ public class TextScreen {
 		}
 		else if ( c == 10 ) {
 			hideCursor();
-			cursX = 0;
-			if ( ++cursY >= height ) {
-				cursY = height - 1;
-				scrollUp();
-			}
+			nextLine();
 			showCursor();
 		}
 		else if ( c == 9 ) { // HTAB
@@ -677,10 +747,7 @@ public class TextScreen {
 			cursX = ( cursX + 8 ) & ~7;
 			if ( cursX >= width ) {
 				cursX %= width;
-				if ( ++cursY >= height ) {
-					cursY = height - 1;
-					scrollUp();
-				}				
+				downLine();
 			}
 			showCursor();
 		}
@@ -702,11 +769,7 @@ public class TextScreen {
 			int v = ( userA << ATTR_SHIFT ) | ( colorB << BGCOL_SHIFT ) | ( colorF << FGCOL_SHIFT ) | c;
 			buffer[ cursY * width + cursX ] = v;
 			if ( ++cursX >= width ) {
-				cursX = 0;
-				if ( ++cursY >= height ) {
-					cursY = height - 1;
-					scrollUp();
-				}
+				nextLine();
 			}
 			showCursor();
 		}
