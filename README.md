@@ -11,6 +11,6 @@ In this repo, you'll currently only find its source code and Eclipse project fil
 
 I've added a couple of features from real terminal emulators, like 8-bit Unicode code point input and output, some CSI / OSC sequence support on input/output, so it partially already works and can be used for some things. Currently, the code is hardwired to run the "bash" shell. Signal handling (Ctrl-C / Ctrl-D) doesn't work yet.
 
-![Bildschirmfoto_2023-03-15_11-47-00](https://user-images.githubusercontent.com/52674537/225286873-a2e6004e-69d0-4208-80d2-00bffe06d013.png)
+![Bildschirmfoto_2023-03-17_08-10-17](https://user-images.githubusercontent.com/52674537/225841283-fa8d002e-6e14-4190-858a-9fd9d51ab2a4.png)
 
-https://www.youtube.com/watch?v=IBXD-YB9dhk
+https://www.youtube.com/watch?v=srtz5q8OhBw
