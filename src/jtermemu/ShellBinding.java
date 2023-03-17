@@ -149,6 +149,84 @@ public class ShellBinding {
 							bytes = "\u001b[D".getBytes();
 						}
 						break;
+					case KeyEvent.VK_HOME:
+						bytes = "\u001b[1~".getBytes();
+						break;
+					case KeyEvent.VK_END:
+						bytes = "\u001b[4~".getBytes();
+						break;
+					case KeyEvent.VK_PAGE_UP:
+						bytes = "\u001b[5~".getBytes();
+						break;
+					case KeyEvent.VK_PAGE_DOWN:
+						bytes = "\u001b[6~".getBytes();
+						break;
+					case KeyEvent.VK_INSERT:
+						bytes = "\u001b[2~".getBytes();
+						break;
+					case KeyEvent.VK_DELETE:
+						bytes = "\u001b[3~".getBytes();
+						break;
+					case KeyEvent.VK_F1:
+						bytes = "\u001b[11~".getBytes();
+						break;
+					case KeyEvent.VK_F2:
+						bytes = "\u001b[12~".getBytes();
+						break;
+					case KeyEvent.VK_F3:
+						bytes = "\u001b[13~".getBytes();
+						break;
+					case KeyEvent.VK_F4:
+						bytes = "\u001b[14~".getBytes();
+						break;
+					case KeyEvent.VK_F5:
+						bytes = "\u001b[15~".getBytes();
+						break;
+					case KeyEvent.VK_F6:
+						bytes = "\u001b[17~".getBytes();
+						break;
+					case KeyEvent.VK_F7:
+						bytes = "\u001b[18~".getBytes();
+						break;
+					case KeyEvent.VK_F8:
+						bytes = "\u001b[19~".getBytes();
+						break;
+					case KeyEvent.VK_F9:
+						bytes = "\u001b[20~".getBytes();
+						break;
+					case KeyEvent.VK_F10:
+						bytes = "\u001b[21~".getBytes();
+						break;
+					case KeyEvent.VK_F11:
+						bytes = "\u001b[23~".getBytes();
+						break;
+					case KeyEvent.VK_F12:
+						bytes = "\u001b[24~".getBytes();
+						break;
+					case KeyEvent.VK_F13:
+						bytes = "\u001b[25~".getBytes();
+						break;
+					case KeyEvent.VK_F14:
+						bytes = "\u001b[26~".getBytes();
+						break;
+					case KeyEvent.VK_F15:
+						bytes = "\u001b[28~".getBytes();
+						break;
+					case KeyEvent.VK_F16:
+						bytes = "\u001b[29~".getBytes();
+						break;
+					case KeyEvent.VK_F17:
+						bytes = "\u001b[31~".getBytes();
+						break;
+					case KeyEvent.VK_F18:
+						bytes = "\u001b[32~".getBytes();
+						break;
+					case KeyEvent.VK_F19:
+						bytes = "\u001b[33~".getBytes();
+						break;
+					case KeyEvent.VK_F20:
+						bytes = "\u001b[34~".getBytes();
+						break;
 					}
 					if ( bytes != null ) {
 						stdInFeeder.enterInput( bytes );

@@ -426,6 +426,11 @@ public class TextScreen {
 			if ( nargs >= 1 ) cnt = args[0];
 			while ( --cnt >= 0 ) insertLine();
 		}
+		else if ( c == 'M' ) {
+			int cnt = 1;
+			if ( nargs >= 1 ) cnt = args[0];
+			while ( --cnt >= 0 ) deleteLine();
+		}
 		else if ( c == 'P' ) {	// delete chars
 			int cnt = 1;
 			if ( nargs >= 1 ) cnt = args[0];
@@ -531,7 +536,7 @@ public class TextScreen {
 		else if ( c == 'r' ) {	// set scrolling region
 			scrollTop    = nargs >= 1 ? args[0] : 1;
 			scrollBottom = nargs >= 2 ? args[1] : height;
-			System.out.printf( "Scroll top/bottom set to %d/%d\n", scrollTop, scrollBottom );
+			// System.out.printf( "Scroll top/bottom set to %d/%d\n", scrollTop, scrollBottom );
 		}
 		/*
 			Unsupported CSI sequence: ?2004h
@@ -650,13 +655,22 @@ public class TextScreen {
 	
 	private void insertLine() {
 		if ( cursY < scrollTop-1 || cursY > scrollBottom-1 ) return;
-		System.out.printf( "cursY=%d, scrollTop=%d, scrollBottom=%d\n", cursY, scrollTop, scrollBottom );
+		// System.out.printf( "cursY=%d, scrollTop=%d, scrollBottom=%d\n", cursY, scrollTop, scrollBottom );
 		int old = scrollTop;
 		scrollTop = cursY + 1;
 		scrollDown();
 		scrollTop = old;
 	}
-	
+
+	private void deleteLine() {
+		if ( cursY < scrollTop-1 || cursY > scrollBottom-1 ) return;
+		// System.out.printf( "cursY=%d, scrollTop=%d, scrollBottom=%d\n", cursY, scrollTop, scrollBottom );
+		int old = scrollTop;
+		scrollTop = cursY + 1;
+		scrollUp();
+		scrollTop = old;
+	}
+
 	private void writech( int c, boolean iscp ) {
 		if ( utf8 ) {
 			if ( ( c & 0xc0 ) == 0x80 ) {
