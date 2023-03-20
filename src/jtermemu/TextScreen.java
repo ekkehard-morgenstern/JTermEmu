@@ -539,37 +539,15 @@ public class TextScreen {
 			// System.out.printf( "Scroll top/bottom set to %d/%d\n", scrollTop, scrollBottom );
 		}
 		/*
-			Unsupported CSI sequence: ?2004h
-			Unsupported CSI sequence: ?1049h
 			Unsupported CSI sequence: 22;0;0t
-			Unsupported CSI sequence: ?1h
-			Unsupported CSI sequence: ?2004h
-			Unsupported CSI sequence: 1;24r
-			Unsupported CSI sequence: ?12h
-			Unsupported CSI sequence: ?12l
 			Unsupported CSI sequence: 22;2t
 			Unsupported CSI sequence: 22;1t
-			Unsupported CSI sequence: ?25l
-			Unsupported CSI sequence: ?25h
-			Unsupported CSI sequence: ?25l
-			Unsupported CSI sequence: ?2004h
-			Unsupported CSI sequence: ?25h
-			Unsupported CSI sequence: ?25l
-			Unsupported CSI sequence: ?25h
-			Unsupported CSI sequence: ?25l
-			Unsupported CSI sequence: ?25h
-			Unsupported CSI sequence: ?25l
-			Unsupported CSI sequence: ?2004l
 			Unsupported CSI sequence: 23;2t
 			Unsupported CSI sequence: 23;1t
 			Unsupported CSI sequence: 22;2t
 			Unsupported CSI sequence: 22;1t
 			Unsupported CSI sequence: 23;2t
 			Unsupported CSI sequence: 23;1t
-			Unsupported CSI sequence: ?2004l
-			Unsupported CSI sequence: ?1l
-			Unsupported CSI sequence: ?25h
-			Unsupported CSI sequence: ?1049l
 			Unsupported CSI sequence: 23;0;0t
 		*/
 		else {
